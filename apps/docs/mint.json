@@ -1,78 +1,90 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Novel Docs",
+  "name": "Starter Kit",
   "logo": {
-    "dark": "/logo/logo.svg",
-    "light": "/logo/logo.svg"
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#334155",
-    "light": "#cbd5e1",
-    "dark": "#334155",
-    "background": {
-      "dark": "#020817"
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
     }
   },
-
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:hi@mintlify.com"
+    }
+  ],
   "topbarCtaButton": {
-    "name": "Demo",
-    "url": "https://novel.sh/"
+    "name": "Dashboard",
+    "url": "https://dashboard.mintlify.com"
   },
-
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
   "anchors": [
     {
-      "name": "Components",
-      "icon": "react",
-      "url": "components"
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "https://mintlify.com/docs"
     },
     {
-      "name": "Github",
-      "icon": "github",
-      "url": "https://github.com/steven-tey/novel"
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://mintlify.com/community"
+    },
+    {
+      "name": "Blog",
+      "icon": "newspaper",
+      "url": "https://mintlify.com/blog"
     }
   ],
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["introduction", "quickstart", "development"]
-    },
-    {
-      "group": "Guides",
       "pages": [
-        "guides/overview",
-        {
-          "group": "Using Tailwind",
-          "pages": [
-            "guides/tailwind/setup",
-            "guides/tailwind/extensions",
-            "guides/tailwind/slash-command",
-            "guides/tailwind/bubble-menu"
-          ]
-        },
-        "guides/ai-command",
-        "guides/image-upload",
-        "guides/global-drag-handle"
+        "introduction",
+        "quickstart",
+        "development"
       ]
     },
     {
-      "group": "Components",
+      "group": "Essentials",
       "pages": [
-        "components/editor-root",
-        "components/editor-content",
-        "components/editor-command",
-        "components/editor-command-item",
-        "components/editor-bubble",
-        "components/editor-bubble-item"
+        "essentials/markdown",
+        "essentials/code",
+        "essentials/images",
+        "essentials/settings",
+        "essentials/navigation",
+        "essentials/reusable-snippets"
       ]
     },
     {
-      "group": "Utils",
-      "pages": ["components/utils/use-editor"]
+      "group": "API Documentation",
+      "pages": [
+        "api-reference/introduction"
+      ]
+    },
+    {
+      "group": "Endpoint Examples",
+      "pages": [
+        "api-reference/endpoint/get",
+        "api-reference/endpoint/create",
+        "api-reference/endpoint/delete"
+      ]
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/mintlify",
+    "x": "https://x.com/mintlify",
     "github": "https://github.com/mintlify",
     "linkedin": "https://www.linkedin.com/company/mintsearch"
   }

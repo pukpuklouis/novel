@@ -1,5 +1,4 @@
 "use client";
-import { defaultEditorContent } from "@/lib/content";
 import {
   EditorCommand,
   EditorCommandEmpty,
@@ -13,11 +12,12 @@ import {
 import { ImageResizer, handleCommandNavigation } from "novel/extensions";
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import { defaultEditorContent } from "../../lib/content";
 import { defaultExtensions } from "./extensions";
 import { ColorSelector } from "./selectors/color-selector";
 import { LinkSelector } from "./selectors/link-selector";
-import { NodeSelector } from "./selectors/node-selector";
 import { MathSelector } from "./selectors/math-selector";
+import { NodeSelector } from "./selectors/node-selector";
 import { Separator } from "./ui/separator";
 
 import { handleImageDrop, handleImagePaste } from "novel/plugins";
@@ -26,24 +26,24 @@ import { uploadFn } from "./image-upload";
 import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 
-const hljs = require('highlight.js');
+const hljs = require("highlight.js");
 
 const extensions = [...defaultExtensions, slashCommand];
 
 const TailwindAdvancedEditor = () => {
   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
   const [saveStatus, setSaveStatus] = useState("Saved");
-  const [charsCount, setCharsCount] = useState();
+  const [charsCount, setCharsCount] = useState<number | undefined>();
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
 
-  //Apply Codeblock Highlighting on the HTML from editor.getHTML()
+  // Apply Codeblock Highlighting on the HTML from editor.getHTML()
   const highlightCodeblocks = (content: string) => {
-    const doc = new DOMParser().parseFromString(content, 'text/html');
-    doc.querySelectorAll('pre code').forEach((el) => {
+    const doc = new DOMParser().parseFromString(content, "text/html");
+    doc.querySelectorAll("pre code").forEach((el) => {
       // @ts-ignore
       // https://highlightjs.readthedocs.io/en/latest/api.html?highlight=highlightElement#highlightelement
       hljs.highlightElement(el);
@@ -104,7 +104,7 @@ const TailwindAdvancedEditor = () => {
               {suggestionItems.map((item) => (
                 <EditorCommandItem
                   value={item.title}
-                  onCommand={(val) => item.command(val)}
+                  onCommand={(val) => item.command?.(val)}
                   className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-accent aria-selected:bg-accent"
                   key={item.title}
                 >

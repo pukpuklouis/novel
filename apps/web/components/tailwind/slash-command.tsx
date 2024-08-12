@@ -8,6 +8,7 @@ import {
   List,
   ListOrdered,
   MessageSquarePlus,
+  Sparkles,
   Text,
   TextQuote,
   Twitter,
@@ -18,13 +19,25 @@ import { Command, renderItems } from "novel/extensions";
 import { uploadFn } from "./image-upload";
 
 export const suggestionItems = createSuggestionItems([
+  // {
+  //   title: "Send Feedback",
+  //   description: "Let us know how we can improve.",
+  //   icon: <MessageSquarePlus size={18} />,
+  //   command: ({ editor, range }) => {
+  //     editor.chain().focus().deleteRange(range).run();
+  //     window.open("/feedback", "_blank");
+  //   },
+  // },
   {
-    title: "Send Feedback",
-    description: "Let us know how we can improve.",
-    icon: <MessageSquarePlus size={18} />,
+    title: "AI Continue",
+    description: "Let AI continue writing for you.",
+    searchTerms: ["ai", "continue", "autocomplete", "generate"],
+    icon: <Sparkles size={18} color="#ff66f2" />,
     command: ({ editor, range }) => {
+      // TODO: Implement AI continuation logic
       editor.chain().focus().deleteRange(range).run();
-      window.open("/feedback", "_blank");
+      // Here you would typically call an API or trigger a function to generate AI content
+      console.log("AI Continue command triggered");
     },
   },
   {

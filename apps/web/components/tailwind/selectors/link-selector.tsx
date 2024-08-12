@@ -1,6 +1,6 @@
-import { Button } from "@/components/tailwind/ui/button";
-import { PopoverContent } from "@/components/tailwind/ui/popover";
-import { cn } from "@/lib/utils";
+import { Button } from "../../../components/tailwind/ui/button";
+import { PopoverContent } from "../../../components/tailwind/ui/popover";
+import { cn } from "../../../lib/utils";
 import { Popover, PopoverTrigger } from "@radix-ui/react-popover";
 import { Check, Trash } from "lucide-react";
 import { useEditor } from "novel";

@@ -1,26 +1,74 @@
+import { Anthropic } from "@anthropic-ai/sdk";
 import { Ratelimit } from "@upstash/ratelimit";
 import { kv } from "@vercel/kv";
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import { StreamingTextResponse } from "ai";
 import { match } from "ts-pattern";
 
-// Create an OpenAI API client (that's edge friendly!)
-
-// IMPORTANT! Set the runtime to edge: https://vercel.com/docs/functions/edge-functions/edge-runtime
 export const runtime = "edge";
 
-export async function POST(req: Request): Promise<Response> {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-  });
-  // Check if the OPENAI_API_KEY is set, if not return 400
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "") {
-    return new Response("Missing OPENAI_API_KEY - make sure to add it to your .env file.", {
-      status: 400,
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  baseURL: process.env.ANTHROPIC_BASE_URL,
+});
+
+const getSystemMessage = (option: string): string => {
+  return match(option)
+    .with(
+      "continue",
+      () =>
+        `
+      You are an AI writing assistant tasked with continuing existing text based on the context from prior text. Your goal is to generate a coherent and relevant continuation that flows naturally from the given text.
+      use prior text you should use as context. 
+      Analyze this text carefully, paying special attention to the later parts. Give more weight and priority to the characters and ideas presented towards the end of the prior text, as they are likely to be more relevant for the continuation.
+      then  start of the continuation:
+      Your task is to continue this text in a way that:
+      1. Maintains consistency with the themes, style, and tone of the prior text
+      2. Flows naturally from the continuation start
+      3. Prioritizes ideas and concepts from the latter part of the prior text
+      Limit your response to no more than 200 characters, but ensure you construct complete sentences. Use Markdown formatting when appropriate, such as for headings, emphasis, or lists.
+      Do not repeat the continuation start in your response.
+      `,
+    )
+    .with(
+      "improve",
+      () =>
+        "You are an AI writing assistant that improves existing text. Limit your response to no more than 200 characters, but make sure to construct complete sentences. Use Markdown formatting when appropriate.",
+    )
+    .with(
+      "shorter",
+      () => "You are an AI writing assistant that shortens existing text. Use Markdown formatting when appropriate.",
+    )
+    .with(
+      "longer",
+      () => "You are an AI writing assistant that lengthens existing text. Use Markdown formatting when appropriate.",
+    )
+    .with(
+      "fix",
+      () =>
+        "You are an AI writing assistant that fixes grammar and spelling errors in existing text. Limit your response to no more than 200 characters, but make sure to construct complete sentences. Use Markdown formatting when appropriate.",
+    )
+    .with(
+      "zap",
+      () =>
+        "You are an AI writing assistant that generates text based on a prompt. You take an input from the user and a command for manipulating the text. Use Markdown formatting when appropriate.",
+    )
+    .otherwise(() => {
+      throw new Error("Invalid option");
     });
+};
+
+export async function POST(req: Request) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response(
+      JSON.stringify({ message: "Missing ANTHROPIC_API_KEY - make sure to add it to your .env file." }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
+
+  // Rate limiting
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     const ip = req.headers.get("x-forwarded-for");
     const ratelimit = new Ratelimit({
@@ -31,9 +79,10 @@ export async function POST(req: Request): Promise<Response> {
     const { success, limit, reset, remaining } = await ratelimit.limit(`novel_ratelimit_${ip}`);
 
     if (!success) {
-      return new Response("You have reached your request limit for the day.", {
+      return new Response(JSON.stringify({ message: "You have reached your request limit for the day." }), {
         status: 429,
         headers: {
+          "Content-Type": "application/json",
           "X-RateLimit-Limit": limit.toString(),
           "X-RateLimit-Remaining": remaining.toString(),
           "X-RateLimit-Reset": reset.toString(),
@@ -42,100 +91,67 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  const { prompt, option, command } = await req.json();
-  const messages = match(option)
-    .with("continue", () => [
-      {
-        role: "system",
-        content:
-          "You are an AI writing assistant that continues existing text based on context from prior text. " +
-          "Give more weight/priority to the later characters than the beginning ones. " +
-          "Limit your response to no more than 200 characters, but make sure to construct complete sentences." +
-          "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ])
-    .with("improve", () => [
-      {
-        role: "system",
-        content:
-          "You are an AI writing assistant that improves existing text. " +
-          "Limit your response to no more than 200 characters, but make sure to construct complete sentences." +
-          "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: `The existing text is: ${prompt}`,
-      },
-    ])
-    .with("shorter", () => [
-      {
-        role: "system",
-        content:
-          "You are an AI writing assistant that shortens existing text. " + "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: `The existing text is: ${prompt}`,
-      },
-    ])
-    .with("longer", () => [
-      {
-        role: "system",
-        content:
-          "You are an AI writing assistant that lengthens existing text. " +
-          "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: `The existing text is: ${prompt}`,
-      },
-    ])
-    .with("fix", () => [
-      {
-        role: "system",
-        content:
-          "You are an AI writing assistant that fixes grammar and spelling errors in existing text. " +
-          "Limit your response to no more than 200 characters, but make sure to construct complete sentences." +
-          "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: `The existing text is: ${prompt}`,
-      },
-    ])
-    .with("zap", () => [
-      {
-        role: "system",
-        content:
-          "You area an AI writing assistant that generates text based on a prompt. " +
-          "You take an input from the user and a command for manipulating the text" +
-          "Use Markdown formatting when appropriate.",
-      },
-      {
-        role: "user",
-        content: `For this text: ${prompt}. You have to respect the command: ${command}`,
-      },
-    ])
-    .run() as ChatCompletionMessageParam[];
+  try {
+    const { prompt, option, command } = await req.json();
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    stream: true,
-    messages,
-    temperature: 0.7,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-    n: 1,
-  });
+    if (!prompt || !option) {
+      return new Response(JSON.stringify({ message: "Missing required parameters: prompt and option" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+    const systemMessage = getSystemMessage(option);
 
-  // Respond with the stream
-  return new StreamingTextResponse(stream);
+    const stream = await anthropic.messages.create({
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 1000,
+      system: systemMessage,
+      messages: [
+        {
+          role: "user",
+          content: option === "zap" ? `For this text: ${prompt}. You have to respect the command: ${command}` : prompt,
+        },
+      ],
+      stream: true,
+    });
+
+    // Convert the Anthropic stream to a ReadableStream
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            if (chunk.type === "content_block_delta" && chunk.delta && "text" in chunk.delta) {
+              controller.enqueue(chunk.delta.text);
+            }
+          }
+        } catch (error) {
+          console.error("Error processing stream:", error);
+          controller.error(error);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    // Return a StreamingTextResponse
+    return new StreamingTextResponse(readableStream);
+  } catch (error) {
+    console.error("Error processing request:", error);
+    let message = "An error occurred while processing your request.";
+    let status = 500;
+
+    if (error instanceof Anthropic.APIError) {
+      message = "Invalid request to AI model. Please try again.";
+      status = 400;
+    } else if (error instanceof Error && error.message === "Invalid option") {
+      message = "Invalid option provided.";
+      status = 400;
+    }
+
+    return new Response(JSON.stringify({ message }), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }
