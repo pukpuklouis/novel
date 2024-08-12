@@ -20,16 +20,11 @@ export const EditorBubble = forwardRef<HTMLDivElement, EditorBubbleProps>(
       instanceRef.current.popperInstance?.update();
     }, [tippyOptions?.placement]);
 
-    const bubbleMenuProps: Omit<BubbleMenuProps, "children"> = useMemo(() => {
+    const bubbleMenuProps: BubbleMenuProps = useMemo(() => {
       const shouldShow: BubbleMenuProps["shouldShow"] = ({ editor, state }) => {
         const { selection } = state;
         const { empty } = selection;
 
-        // don't show bubble menu if:
-        // - the editor is not editable
-        // - the selected node is an image
-        // - the selection is empty
-        // - the selection is a node selection (for drag handles)
         if (!editor.isEditable || editor.isActive("image") || empty || isNodeSelection(selection)) {
           return false;
         }
@@ -46,20 +41,21 @@ export const EditorBubble = forwardRef<HTMLDivElement, EditorBubbleProps>(
           ...tippyOptions,
         },
         ...rest,
+        editor: currentEditor,
+        children: children, // Add this line to include the children prop
       };
-    }, [rest, tippyOptions]);
+    }, [rest, tippyOptions, currentEditor, children]); // Add children to the dependency array
 
     if (!currentEditor) return null;
 
     return (
-      // We need to add this because of https://github.com/ueberdosis/tiptap/issues/2658
       <div ref={ref}>
-        <BubbleMenu editor={currentEditor} {...bubbleMenuProps}>
+        <BubbleMenu {...bubbleMenuProps}>
           {children}
         </BubbleMenu>
       </div>
     );
-  },
+  }
 );
 
 EditorBubble.displayName = "EditorBubble";

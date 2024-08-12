@@ -1,0 +1,207 @@
+Requirement: Integrate Dify AI API as a backend for content generation
+
+1. API Setup:
+   - Create a new file: apps/web/api/dify.ts
+   - Implement Dify AI API access functions in this file
+   - Base URL: https://api.dify.ai/v1
+   - Authentication: Add Authorization header with Bearer token
+   - Add DIFY_API_KEY to .env.local file
+
+2. Frontend Integration:
+   - File: apps/web/app/page.tsx
+   - Component: Post2Thread (React.FC)
+   - Location: Inside the Drawer component
+
+3. Form Fields:
+   - Language: Single select option
+   - Topic: Text input
+   - Writer Style: Single select option
+   - Persona: Optional text input
+   - Original Article: Paragraph text area
+
+4. API Integration:
+   - Use the POST /workflows/run endpoint
+   - Implement streaming response handling (ChunkCompletionResponse)
+   - Use SSE (Server-Sent Events) for real-time updates
+
+5. Request Body:
+   - inputs: Object containing form field values
+   - response_mode: "streaming"
+   - user: Unique identifier for the end-user
+
+6. Response Handling:
+   - Parse the streaming chunks
+   - Update UI in real-time as content is generated
+
+7. Error Handling:
+   - Implement proper error handling for API calls
+   - Display user-friendly error messages
+
+8. Performance Considerations:
+   - Optimize for responsiveness during content generation
+   - Consider implementing a loading state while waiting for the API response
+
+9. Security:
+   - Ensure the API key is not exposed on the client-side
+   - Implement proper input validation and sanitization
+
+10. UI/UX Requirements:
+   - Implement a responsive design for the form
+   - Use a clean, minimalist layout with clear labels for each input field
+   - Provide real-time validation feedback for input fields
+   - Display a progress indicator during content generation
+   - Implement a preview mode for the generated content
+   - Allow users to edit the generated content before posting
+
+11. Language and Writer Style Options:
+   - Language options:
+     - English
+     - 繁體中文 台灣
+     - Japanese
+
+   - Writer Style options:
+     - business writer
+     - personal feeling
+     - personal opinion
+     - for thread
+
+
+12. Dify AI API Usage Restrictions:
+   - Implement rate limiting of 10 requests per minute per user
+   - Set a maximum of 1000 tokens per request
+   - Implement a daily usage quota of 10,000 tokens per user
+   - Add error handling for when API limits are reached
+   - Implement a caching mechanism to reduce API calls for similar requests
+
+
+
+
+
+
+
+
+
+reference: for dify ai api
+
+ POST
+/workflows/run
+Execute workflow
+Execute workflow, cannot be executed without a published workflow.
+
+Request Body
+inputs (object) Required Allows the entry of various variable values defined by the App. The inputs parameter contains multiple key/value pairs, with each key corresponding to a specific variable and each value being the specific value for that variable. The workflow application requires at least one key/value pair to be inputted.
+response_mode (string) Required The mode of response return, supporting:
+streaming Streaming mode (recommended), implements a typewriter-like output through SSE (Server-Sent Events).
+blocking Blocking mode, returns result after execution is complete. (Requests may be interrupted if the process is long) Due to Cloudflare restrictions, the request will be interrupted without a return after 100 seconds.
+user (string) Required User identifier, used to define the identity of the end-user for retrieval and statistics. Should be uniquely defined by the developer within the application.
+files (array[object]) Optional File list, suitable for inputting files (images) combined with text understanding and answering questions, available only when the model supports Vision capability.
+type (string) Supported type: image (currently only supports image type)
+transfer_method (string) Transfer method, remote_url for image URL / local_file for file upload
+url (string) Image URL (when the transfer method is remote_url)
+upload_file_id (string) Uploaded file ID, which must be obtained by uploading through the File Upload API in advance (when the transfer method is local_file)
+Response
+When response_mode is blocking, return a CompletionResponse object. When response_mode is streaming, return a ChunkCompletionResponse stream.
+
+CompletionResponse
+Returns the App result, Content-Type is application/json.
+
+workflow_run_id (string) Unique ID of workflow execution
+task_id (string) Task ID, used for request tracking and the below Stop Generate API
+data (object) detail of result
+id (string) ID of workflow execution
+workflow_id (string) ID of relatied workflow
+status (string) status of execution, running / succeeded / failed / stopped
+outputs (json) Optional content of output
+error (string) Optional reason of error
+elapsed_time (float) Optional total seconds to be used
+total_tokens (int) Optional tokens to be used
+total_steps (int) default 0
+created_at (timestamp) start time
+finished_at (timestamp) end time
+ChunkCompletionResponse
+Returns the stream chunks outputted by the App, Content-Type is text/event-stream. Each streaming chunk starts with data:, separated by two newline characters \n\n, as shown below:
+
+data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "answer": "Hi", "created_at": 1705398420}\n\n
+
+Copy
+Copied!
+The structure of the streaming chunks varies depending on the event:
+
+event: workflow_started workflow starts execution
+task_id (string) Task ID, used for request tracking and the below Stop Generate API
+workflow_run_id (string) Unique ID of workflow execution
+event (string) fixed to workflow_started
+data (object) detail
+id (string) Unique ID of workflow execution
+workflow_id (string) ID of relatied workflow
+sequence_number (int) Self-increasing serial number, self-increasing in the App, starting from 1
+created_at (timestamp) Creation timestamp, e.g., 1705395332
+event: node_started node execution started
+task_id (string) Task ID, used for request tracking and the below Stop Generate API
+workflow_run_id (string) Unique ID of workflow execution
+event (string) fixed to node_started
+data (object) detail
+id (string) Unique ID of workflow execution
+node_id (string) ID of node
+node_type (string) type of node
+title (string) name of node
+index (int) Execution sequence number, used to display Tracing Node sequence
+predecessor_node_id (string) optional Prefix node ID, used for canvas display execution path
+inputs (array[object]) Contents of all preceding node variables used in the node
+created_at (timestamp) timestamp of start, e.g., 1705395332
+event: node_finished node execution ends, success or failure in different states in the same event
+task_id (string) Task ID, used for request tracking and the below Stop Generate API
+workflow_run_id (string) Unique ID of workflow execution
+event (string) fixed to node_finished
+data (object) detail
+id (string) Unique ID of workflow execution
+node_id (string) ID of node
+node_type (string) type of node
+title (string) name of node
+index (int) Execution sequence number, used to display Tracing Node sequence
+predecessor_node_id (string) optional Prefix node ID, used for canvas display execution path
+inputs (array[object]) Contents of all preceding node variables used in the node
+process_data (json) Optional node process data
+outputs (json) Optional content of output
+status (string) status of execution, running / succeeded / failed / stopped
+error (string) Optional reason of error
+elapsed_time (float) Optional total seconds to be used
+execution_metadata (json) meta data
+total_tokens (int) optional tokens to be used
+total_price (decimal) optional Total cost
+currency (string) optional e.g. USD / RMB
+created_at (timestamp) timestamp of start, e.g., 1705395332
+event: workflow_finished workflow execution ends, success or failure in different states in the same event
+task_id (string) Task ID, used for request tracking and the below Stop Generate API
+workflow_run_id (string) Unique ID of workflow execution
+event (string) fixed to workflow_finished
+data (object) detail
+id (string) ID of workflow execution
+workflow_id (string) ID of relatied workflow
+status (string) status of execution, running / succeeded / failed / stopped
+outputs (json) Optional content of output
+error (string) Optional reason of error
+elapsed_time (float) Optional total seconds to be used
+total_tokens (int) Optional tokens to be used
+total_steps (int) default 0
+created_at (timestamp) start time
+finished_at (timestamp) end time
+event: tts_message TTS audio stream event, that is, speech synthesis output. The content is an audio block in Mp3 format, encoded as a base64 string. When playing, simply decode the base64 and feed it into the player. (This message is available only when auto-play is enabled)
+task_id (string) Task ID, used for request tracking and the stop response interface below
+message_id (string) Unique message ID
+audio (string) The audio after speech synthesis, encoded in base64 text content, when playing, simply decode the base64 and feed it into the player
+created_at (int) Creation timestamp, e.g.: 1705395332
+event: tts_message_end TTS audio stream end event, receiving this event indicates the end of the audio stream.
+task_id (string) Task ID, used for request tracking and the stop response interface below
+message_id (string) Unique message ID
+audio (string) The end event has no audio, so this is an empty string
+created_at (int) Creation timestamp, e.g.: 1705395332
+event: ping Ping event every 10 seconds to keep the connection alive.
+Errors
+400, invalid_param, abnormal parameter input
+400, app_unavailable, App configuration unavailable
+400, provider_not_initialize, no available model credential configuration
+400, provider_quota_exceeded, model invocation quota insufficient
+400, model_currently_not_support, current model unavailable
+400, workflow_request_error, workflow execution failed
+500, internal server error

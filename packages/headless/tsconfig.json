@@ -1,9 +1,21 @@
 {
-  "extends": "tsconfig/react.json",
+  "extends": "../../tsconfig.json",
   "include": ["./src/**/*"],
   "exclude": ["dist", "build", "node_modules"],
   "compilerOptions": {
     "declarationMap": false,
-    "outDir": "dist"
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "declaration": true,
+    "skipLibCheck": true
   }
 }
